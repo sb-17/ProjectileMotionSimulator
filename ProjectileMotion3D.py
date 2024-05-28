@@ -9,8 +9,7 @@ root.geometry("600x400")
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(4, weight=1)
 
-stepTrajectory = 0.001
-stepArea = 0.01
+step = 0.001
 
 airResistance = False
 
@@ -64,6 +63,20 @@ def graph(xpoints, ypoints, zpoints, theta, phi, v_0, m, g, c, v_air):
         "v_air": v_air
     }
     fig = px.scatter_3d(df, x='x', y='y', z='z')
+    common_range = [
+        min(min(df['x']), min(df['y']), min(df['z'])),
+        max(max(df['x']), max(df['y']), max(df['z']))
+    ]
+
+    fig.update_layout(
+        scene=dict(
+            xaxis = dict(range=common_range),
+            yaxis = dict(range=common_range),
+            zaxis = dict(range=common_range),
+            aspectmode='manual',
+            aspectratio=dict(x=1, y=1, z=1)
+        )
+    )
     fig.show()
 
 
@@ -82,15 +95,15 @@ def calcTrajectory():
     c = float(dragCoefficientEntry.get())
     v_air = float(windVelocityEntry.get())
 
-    v_xinit = np.sin(np.deg2rad(theta))*np.cos(np.deg2rad(phi)) * v_0
-    v_yinit = np.sin(np.deg2rad(theta))*np.sin(np.deg2rad(phi)) * v_0
-    v_zinit = np.cos(np.deg2rad(theta)) * v_0
+    v_xinit = np.sin(np.deg2rad(theta))*np.cos(np.deg2rad(phi))*v_0
+    v_yinit = np.sin(np.deg2rad(theta))*np.sin(np.deg2rad(phi))*v_0
+    v_zinit = np.cos(np.deg2rad(theta))*v_0
 
     if airResistance == False:
-        for t in np.arange(0, 10000, stepTrajectory):
+        for t in np.arange(0, 10000, step):
             currentX = v_xinit*t
             currentY = v_yinit*t
-            currentZ = v_zinit*t-(1/2)*g*t**2
+            currentZ = v_zinit*t - (1/2)*g*t**2
             if currentZ < 0:
                 break
             xpoints.append(currentX)
@@ -98,10 +111,10 @@ def calcTrajectory():
             zpoints.append(currentZ)
 
     else:
-        for t in np.arange(0, 10000, stepTrajectory):
-            currentX = v_air*t+m/c*(v_xinit-v_air)*(1-np.exp(-c*t/m))
-            currentY = v_yinit*m/c*(1-np.exp(-c*t/m))
-            currentZ = ((m**2*g+c*m*v_zinit)/c**2)*(1-np.exp(-c*t/m))-m*g*t/c
+        for t in np.arange(0, 10000, step):
+            currentX = v_air*t + m/c*(v_xinit - v_air)*(1 - np.exp(-c*t/m))
+            currentY = v_yinit*m/c*(1 - np.exp(-c*t/m))
+            currentZ = ((m**2*g + c*m*v_zinit)/c**2)*(1 - np.exp(-c*t/m)) - m*g*t/c
             if currentZ < 0:
                 break
             xpoints.append(currentX)
@@ -122,33 +135,37 @@ def calcArea():
     c = float(dragCoefficientEntry.get())
     v_air = float(windVelocityEntry.get())
 
-    for phi in range(0, 360, 10):
+    for phi in range(0, 360, 8):
         for theta in range(-90, 91, 10):
-            v_xinit = np.sin(np.deg2rad(theta))*np.cos(np.deg2rad(phi)) * v_0
-            v_yinit = np.sin(np.deg2rad(theta))*np.sin(np.deg2rad(phi)) * v_0
-            v_zinit = np.cos(np.deg2rad(theta)) * v_0
+            v_xinit = np.sin(np.deg2rad(theta))*np.cos(np.deg2rad(phi))*v_0
+            v_yinit = np.sin(np.deg2rad(theta))*np.sin(np.deg2rad(phi))*v_0
+            v_zinit = np.cos(np.deg2rad(theta))*v_0
 
             if airResistance == False:
-                for t in np.arange(0, 10000, stepTrajectory):
+                for t in np.arange(0, 10000, step):
                     currentX = v_xinit*t
                     currentY = v_yinit*t
-                    currentZ = v_zinit*t-(1/2)*g*t**2
+                    currentZ = v_zinit*t - (1/2)*g*t**2
                     if currentZ < 0:
                         xpoints.append(currentX)
                         ypoints.append(currentY)
                         break
 
             else:
-                for t in np.arange(0, 10000, stepTrajectory):
-                    currentX = v_air*t+m/c*(v_xinit-v_air)*(1-np.exp(-c*t/m))
-                    currentY = v_yinit*m/c*(1-np.exp(-c*t/m))
-                    currentZ = ((m**2*g+c*m*v_zinit)/c**2)*(1-np.exp(-c*t/m))-m*g*t/c
+                for t in np.arange(0, 10000, step):
+                    currentX = v_air*t + m/c*(v_xinit - v_air)*(1 - np.exp(-c*t/m))
+                    currentY = v_yinit*m/c*(1 - np.exp(-c*t/m))
+                    currentZ = ((m**2*g + c*m*v_zinit)/c**2)*(1 - np.exp(-c*t/m)) -m*g*t/c
                     if currentZ < 0:
                         xpoints.append(currentX)
                         ypoints.append(currentY)
                         break
     
     fig = px.scatter(x=xpoints, y=ypoints)
+    fig.update_yaxes(
+        scaleanchor = "x",
+        scaleratio = 1
+    )
     fig.show()
 
 
